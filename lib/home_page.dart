@@ -36,10 +36,10 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('FarmBid'),
+        title: const Text('FarmBid'),
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
           )
         ],
@@ -50,10 +50,10 @@ class _HomePageState extends State<HomePage> {
           children: [
             // Welcome Banner
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
                 ),
@@ -68,21 +68,21 @@ class _HomePageState extends State<HomePage> {
                               backgroundImage: NetworkImage(user!.photoURL!),
                               radius: 30,
                             )
-                          : CircleAvatar(
+                          : const CircleAvatar(
                               child: Icon(Icons.account_circle, size: 40),
                               radius: 30,
                             ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Welcome back,',
                             style: TextStyle(fontSize: 16),
                           ),
                           Text(
                             user?.displayName ?? 'User',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -97,14 +97,14 @@ class _HomePageState extends State<HomePage> {
 
             // Add Future Harvests Section
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Future Harvests',
                         style: TextStyle(
                           fontSize: 20,
@@ -119,13 +119,13 @@ class _HomePageState extends State<HomePage> {
                                 builder: (context) => AddPreAuctionPage()),
                           );
                         },
-                        icon: Icon(Icons.add, color: Colors.green),
-                        label: Text('Add Post',
+                        icon: const Icon(Icons.add, color: Colors.green),
+                        label: const Text('Add Post',
                             style: TextStyle(color: Colors.green)),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   StreamBuilder<QuerySnapshot>(
                     stream: PreAuctionService().getFutureHarvests(),
                     builder: (context, snapshot) {
@@ -138,13 +138,13 @@ class _HomePageState extends State<HomePage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text('Error loading future harvests'),
-                              SizedBox(height: 8),
+                              const Text('Error loading future harvests'),
+                              const SizedBox(height: 8),
                               ElevatedButton(
                                 onPressed: () {
                                   setState(() {});
                                 },
-                                child: Text('Retry'),
+                                child: const Text('Retry'),
                               ),
                             ],
                           ),
@@ -152,7 +152,7 @@ class _HomePageState extends State<HomePage> {
                       }
 
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       final currentUserId =
@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                           'Processing ${docs.length} future harvest documents');
 
                       if (docs.isEmpty) {
-                        return Center(
+                        return const Center(
                           child: Text('No future harvests posted yet'),
                         );
                       }
@@ -187,18 +187,18 @@ class _HomePageState extends State<HomePage> {
 
             // Your Interests Section
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Your Interests',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('pre_auction_listings')
@@ -209,11 +209,11 @@ class _HomePageState extends State<HomePage> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return Center(child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.data!.docs.isEmpty) {
-                        return Center(
+                        return const Center(
                           child: Text(
                             'No interests marked yet',
                             style: TextStyle(color: Colors.grey),
@@ -225,13 +225,13 @@ class _HomePageState extends State<HomePage> {
                         children: snapshot.data!.docs.map((doc) {
                           final data = doc.data() as Map<String, dynamic>;
                           return Card(
-                            margin: EdgeInsets.only(bottom: 8),
+                            margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               title: Text(data['productName']),
                               subtitle: Text(
                                 'Expected: ${_formatDate(DateTime.parse(data['expectedHarvestDate']))}',
                               ),
-                              trailing: Icon(Icons.notifications_active),
+                              trailing: const Icon(Icons.notifications_active),
                             ),
                           );
                         }).toList(),
@@ -244,18 +244,18 @@ class _HomePageState extends State<HomePage> {
 
             // Your Posts Section
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Your Posts',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('pre_auction_listings')
@@ -266,11 +266,11 @@ class _HomePageState extends State<HomePage> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
-                        return Center(
+                        return const Center(
                           child: Text('Error loading your posts'),
                         );
                       }
@@ -281,11 +281,11 @@ class _HomePageState extends State<HomePage> {
                         return Center(
                           child: Column(
                             children: [
-                              Text(
+                              const Text(
                                 'No posts yet',
                                 style: TextStyle(color: Colors.grey),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               ElevatedButton.icon(
                                 onPressed: () {
                                   Navigator.push(
@@ -295,8 +295,8 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   );
                                 },
-                                icon: Icon(Icons.add),
-                                label: Text('Add New Post'),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add New Post'),
                               ),
                             ],
                           ),
@@ -315,37 +315,23 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Quick Stats
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildQuickStat('Active\nAuctions', '28', Icons.gavel),
-                  _buildQuickStat('Today\'s\nDeals', '12', Icons.trending_up),
-                  _buildQuickStat(
-                      'Average\nPrice', '₹85/kg', Icons.price_check),
-                ],
-              ),
-            ),
-
             // Featured Categories
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Featured Categories',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   GridView.count(
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
@@ -366,18 +352,18 @@ class _HomePageState extends State<HomePage> {
 
             // Trending Auctions
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Trending Auctions',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildTrendingAuctions(),
                 ],
               ),
@@ -385,10 +371,10 @@ class _HomePageState extends State<HomePage> {
 
             // Tips Section
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Card(
                 color: Colors.green.shade50,
-                child: Padding(
+                child: const Padding(
                   padding: EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +412,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildQuickStat(String title, String value, IconData icon) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -441,10 +427,10 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           Icon(icon, color: Colors.green, size: 24),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -483,10 +469,10 @@ class _HomePageState extends State<HomePage> {
             size: 40,
             color: Colors.green,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -527,30 +513,30 @@ class _HomePageState extends State<HomePage> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Text('Something went wrong');
+          return const Text('Something went wrong');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         return Column(
           children: (snapshot.data?.docs ?? []).map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return Card(
-              margin: EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
                 leading: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.trending_up, color: Colors.green),
+                  child: const Icon(Icons.trending_up, color: Colors.green),
                 ),
                 title: Text(data['name'] ?? 'Unknown Item'),
                 subtitle: Text('Current Bid: ₹${data['currentBid']}'),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   // Navigate to auction detail
                 },
@@ -573,13 +559,13 @@ class _HomePageState extends State<HomePage> {
         (data['interestedBuyerIds'] as List<dynamic>).contains(currentUserId);
 
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         children: [
           ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.green.shade50,
-              child: Icon(Icons.eco, color: Colors.green),
+              child: const Icon(Icons.eco, color: Colors.green),
             ),
             title: Row(
               children: [
@@ -588,9 +574,9 @@ class _HomePageState extends State<HomePage> {
                 ),
                 if (isOwner)
                   PopupMenuButton(
-                    icon: Icon(Icons.more_vert),
+                    icon: const Icon(Icons.more_vert),
                     itemBuilder: (context) => [
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
@@ -606,13 +592,13 @@ class _HomePageState extends State<HomePage> {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text('Delete Listing'),
-                            content: Text(
+                            title: const Text('Delete Listing'),
+                            content: const Text(
                                 'Are you sure you want to delete this listing?'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: Text('Cancel'),
+                                child: const Text('Cancel'),
                               ),
                               TextButton(
                                 onPressed: () {
@@ -620,7 +606,7 @@ class _HomePageState extends State<HomePage> {
                                       .deletePreAuctionListing(docId);
                                   Navigator.pop(context);
                                 },
-                                child: Text('Delete',
+                                child: const Text('Delete',
                                     style: TextStyle(color: Colors.red)),
                               ),
                             ],
