@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/activity_item.dart';
 import '../services/user_service.dart';
 import '../screens/interests_page.dart';
+import '../screens/financial_assistance_page.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -176,6 +177,29 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
                   minimumSize: const Size.fromHeight(50),
+                ),
+              ),
+            ),
+
+            // Financial Assistance Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FinancialAssistancePage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.account_balance),
+                label: const Text('Apply for Financial Assistance'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: Colors.green.shade600,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ),
