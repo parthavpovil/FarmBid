@@ -134,17 +134,14 @@ class AuctionService {
 
   Future<void> checkExpiredAuctions() async {
     final now = DateTime.now();
-    final snapshot = await _auctionCollection.get();
+    final snapshot = await _auctionCollection
+        .where('status', isNotEqualTo: AuctionStatus.closed.toString())
+        .get();
+        
     for (var doc in snapshot.docs) {
-      final endTime = DateTime.parse(doc['endTime']);
+      final data = doc.data() as Map<String, dynamic>;
+      final endTime = DateTime.parse(data['endTime']);
       if (now.isAfter(endTime)) {
-        // Logic to determine the highest bidder
-        final bids = doc['bids'] as List;
-        if (bids.isNotEmpty) {
-          final highestBid =
-              bids.reduce((a, b) => a['amount'] > b['amount'] ? a : b);
-          // You can handle the logic to notify the highest bidder or process the sale
-        }
         await closeAuction(doc.id);
       }
     }
