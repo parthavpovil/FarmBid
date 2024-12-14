@@ -71,6 +71,8 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
   }
 
   Widget _buildAvailableAuctionsTab() {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    
     return StreamBuilder<List<AuctionItem>>(
       stream: _auctionService.getAuctionItems(),
       builder: (context, snapshot) {
@@ -81,7 +83,11 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        final auctionItems = snapshot.data ?? [];
+        final allAuctionItems = snapshot.data ?? [];
+        // Filter out auctions owned by the current user
+        final auctionItems = allAuctionItems
+            .where((item) => item.sellerId != currentUser?.uid)
+            .toList();
         
         if (auctionItems.isEmpty) {
           return Center(
@@ -96,23 +102,91 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
           );
         }
 
-        return GridView.builder(
+        return ListView.builder(
           padding: EdgeInsets.all(8),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
           itemCount: auctionItems.length,
           itemBuilder: (context, index) {
             final item = auctionItems[index];
-            return AuctionCard(
-              item: item,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AuctionDetailPage(item: item),
+            return Card(
+              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuctionDetailPage(item: item),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Image section
+                    Container(
+                      width: 120,
+                      height: 120,
+                      child: item.images.isNotEmpty
+                          ? Image.network(
+                              item.images[0],
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(child: CircularProgressIndicator());
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Icon(Icons.error_outline, color: Colors.red),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[200],
+                              child: Icon(Icons.image_not_supported, color: Colors.grey),
+                            ),
+                    ),
+                    // Content section
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              item.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '₹${item.currentBid}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  _formatRemainingTime(item.endTime.difference(DateTime.now())),
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
