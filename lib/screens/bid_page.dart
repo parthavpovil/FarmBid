@@ -74,7 +74,7 @@ class _BidPageState extends State<BidPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text('Current Bid: \$${widget.item.currentBid}'),
+            Text('Current Bid: ₹${widget.item.currentBid}'),
             TextField(
               controller: _bidController,
               decoration: InputDecoration(labelText: 'Your Bid'),
@@ -93,7 +93,7 @@ class _BidPageState extends State<BidPage> {
                 itemBuilder: (context, index) {
                   final bid = widget.item.bids[index];
                   return ListTile(
-                    title: Text('${bid.bidderName} bid: \$${bid.amount}'),
+                    title: Text('${bid.bidderName} bid: ₹${bid.amount}'),
                   );
                 },
               ),

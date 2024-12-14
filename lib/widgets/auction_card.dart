@@ -41,7 +41,7 @@ class AuctionCard extends StatelessWidget {
               SizedBox(height: 8),
               _buildInfoRow(
                 Icons.monetization_on,
-                'Current Bid: \$${item.currentBid.toStringAsFixed(2)}',
+                'Current Bid: ₹${item.currentBid.toStringAsFixed(2)}',
               ),
               SizedBox(height: 4),
               _buildInfoRow(

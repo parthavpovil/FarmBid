@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/wallet.dart';
 import '../services/wallet_service.dart';
 import 'add_funds_screen.dart';
+import 'history_page.dart';
 
 class WalletScreen extends StatelessWidget {
   final WalletService _walletService = WalletService();
@@ -16,6 +17,14 @@ class WalletScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('My Wallet'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.history),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => HistoryPage(userId: user.uid)),
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () => Navigator.push(

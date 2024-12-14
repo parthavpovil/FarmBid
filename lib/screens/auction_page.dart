@@ -287,7 +287,7 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Current Bid: \$${item.currentBid.toStringAsFixed(2)}'),
+                    Text('Current Bid: ₹${item.currentBid.toStringAsFixed(2)}'),
                     Text('Time Remaining: ${_formatRemainingTime(remainingTime)}'),
                   ],
                 ),

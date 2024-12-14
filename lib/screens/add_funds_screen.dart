@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/wallet_service.dart';
+import '../screens/confirmation_page.dart';
 
 class AddFundsScreen extends StatefulWidget {
   @override
@@ -40,12 +41,24 @@ class _AddFundsScreenState extends State<AddFundsScreen> {
       final amount = double.parse(_amountController.text);
       await _walletService.addFunds(user.uid, amount);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Funds added successfully!')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => ConfirmationPage(
+              message: 'Successfully added ₹${amount.toStringAsFixed(2)} to your wallet!',
+            ),
+          ),
+          (route) => route.isFirst,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding funds: $e')),
+        );
+      }
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 

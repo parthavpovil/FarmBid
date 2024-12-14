@@ -90,8 +90,8 @@ class AuctionDetailPage extends StatelessWidget {
                   children: [
                     _buildInfoRow('Location', item.location),
                     _buildInfoRow('Quantity', item.quantity.toString()),
-                    _buildInfoRow('Starting Bid', '\$${item.startingBid}'),
-                    _buildInfoRow('Current Bid', '\$${item.currentBid}'),
+                    _buildInfoRow('Starting Bid', '₹${item.startingBid}'),
+                    _buildInfoRow('Current Bid', '₹${item.currentBid}'),
                     _buildInfoRow('Time Remaining', 
                       remainingTime.isNegative ? 'Auction Ended' : 
                       '${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m'),
@@ -115,7 +115,7 @@ class AuctionDetailPage extends StatelessWidget {
                     leading: Icon(Icons.person_outline),
                     title: Text(bid.bidderName),
                     trailing: Text(
-                      '\$${bid.amount.toStringAsFixed(2)}',
+                      '₹${bid.amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.green,

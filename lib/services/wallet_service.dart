@@ -24,21 +24,45 @@ class WalletService {
 
   Future<void> addFunds(String userId, double amount) async {
     final walletRef = _firestore.collection('wallets').doc(userId);
-
+    
+    // First check if wallet exists
+    final walletDoc = await walletRef.get();
+    
     await _firestore.runTransaction((transaction) async {
-      final walletDoc = await transaction.get(walletRef);
-      final wallet = Wallet.fromMap(walletDoc.data()!);
+      if (!walletDoc.exists) {
+        // Create new wallet if it doesn't exist
+        transaction.set(walletRef, {
+          'userId': userId,
+          'balance': amount,
+          'transactions': [{
+            'id': _uuid.v4(),
+            'type': 'deposit',
+            'amount': amount,
+            'timestamp': DateTime.now().toIso8601String(),
+            'description': 'Initial deposit'
+          }],
+          'lockedFunds': {},
+        });
+      } else {
+        // Update existing wallet
+        transaction.update(walletRef, {
+          'balance': FieldValue.increment(amount),
+          'transactions': FieldValue.arrayUnion([{
+            'id': _uuid.v4(),
+            'type': 'deposit',
+            'amount': amount,
+            'timestamp': DateTime.now().toIso8601String(),
+            'description': 'Wallet recharge'
+          }]),
+        });
+      }
 
-      final newTransaction = WalletTransaction(
-        id: _uuid.v4(),
-        type: 'deposit',
-        amount: amount,
-        timestamp: DateTime.now(),
-      );
-
-      transaction.update(walletRef, {
-        'balance': wallet.balance + amount,
-        'transactions': FieldValue.arrayUnion([newTransaction.toMap()]),
+      // Log the recharge
+      final rechargeRef = _firestore.collection('recharges').doc();
+      transaction.set(rechargeRef, {
+        'userId': userId,
+        'amount': amount,
+        'timestamp': FieldValue.serverTimestamp(),
       });
     });
   }
