@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/auction_item.dart';
+import '../services/wallet_service.dart';
 
 class AuctionService {
   final CollectionReference _auctionCollection =
@@ -93,7 +94,31 @@ class AuctionService {
   }
 
   Future<void> closeAuction(String itemId) async {
-    await _auctionCollection.doc(itemId).delete();
+    final walletService = WalletService();
+    final doc = await _auctionCollection.doc(itemId).get();
+    final data = doc.data() as Map<String, dynamic>;
+
+    // Find highest bidder
+    final bids = (data['bids'] as List?) ?? [];
+    if (bids.isNotEmpty) {
+      final highestBid =
+          bids.reduce((a, b) => a['amount'] > b['amount'] ? a : b);
+
+      // Transfer funds from highest bidder to seller
+      await walletService.transferFundsToSeller(
+        itemId,
+        highestBid['bidderId'],
+        data['sellerId'],
+        highestBid['amount'].toDouble(),
+      );
+
+      // Update auction status
+      await _auctionCollection.doc(itemId).update({
+        'status': AuctionStatus.closed.toString(),
+        'winnerId': highestBid['bidderId'],
+        'finalPrice': highestBid['amount'],
+      });
+    }
   }
 
   Future<void> checkExpiredAuctions() async {

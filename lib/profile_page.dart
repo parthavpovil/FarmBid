@@ -3,281 +3,62 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/activity_item.dart';
 import '../services/user_service.dart';
+import '../services/wallet_service.dart';
+import '../models/wallet.dart';
+import '../screens/wallet_screen.dart';
 import '../screens/interests_page.dart';
 import '../screens/financial_assistance_page.dart';
 
-class ProfilePage extends StatefulWidget {
-  @override
-  _ProfilePageState createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
+class ProfilePage extends StatelessWidget {
   final UserService _userService = UserService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  Map<String, int> _userStats = {
-    'activeAuctions': 0,
-    'activeBids': 0,
-    'completedDeals': 0
-  };
-  bool _isLoading = true;
+  final WalletService _walletService = WalletService();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserStats();
-  }
-
-  Future<void> _loadUserStats() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final stats = await _userService.getUserStats(user.uid);
-      setState(() {
-        _userStats = stats;
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _addTestData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final firestore = FirebaseFirestore.instance;
-
-    // Add test auctions
-    await firestore.collection('auctions').add({
-      'sellerId': user.uid,
-      'status': 'active',
-      'name': 'Test Auction 1',
-      'price': 100,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    await firestore.collection('auctions').add({
-      'sellerId': user.uid,
-      'status': 'completed',
-      'name': 'Test Auction 2',
-      'price': 200,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Add test bids
-    await firestore.collection('bids').add({
-      'bidderId': user.uid,
-      'status': 'active',
-      'amount': 150,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Refresh stats
-    _loadUserStats();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final User? user = _auth.currentUser;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Navigate to settings page
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Row(
-                children: [
-                  user?.photoURL != null
-                      ? CircleAvatar(
-                          backgroundImage: NetworkImage(user!.photoURL!),
-                          radius: 40,
-                        )
-                      : const CircleAvatar(
-                          child: Icon(Icons.account_circle, size: 50),
-                          radius: 40,
-                        ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user?.displayName ?? 'User',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        user?.email ?? '',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Stats Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  _buildStatCard(
-                    'Active\nAuctions',
-                    _userStats['activeAuctions'].toString(),
-                    Icons.gavel,
-                  ),
-                  _buildStatCard(
-                    'Active\nBids',
-                    _userStats['activeBids'].toString(),
-                    Icons.trending_up,
-                  ),
-                  _buildStatCard(
-                    'Completed\nDeals',
-                    _userStats['completedDeals'].toString(),
-                    Icons.check_circle,
-                  ),
-                ],
-              ),
-            ),
-
-            // Interests Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => InterestsPage(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.favorite),
-                label: const Text('My Interests'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  minimumSize: const Size.fromHeight(50),
-                ),
-              ),
-            ),
-
-            // Financial Assistance Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FinancialAssistancePage(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.account_balance),
-                label: const Text('Apply for Financial Assistance'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  minimumSize: const Size.fromHeight(50),
-                  backgroundColor: Colors.green.shade600,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-
-            // Recent Activity
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Recent Activity',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  StreamBuilder<List<ActivityItem>>(
-                    stream: _userService.getUserActivities(user?.uid ?? ''),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final activities = snapshot.data ?? [];
-                      if (activities.isEmpty) {
-                        return const Center(
-                          child: Text('No recent activity'),
-                        );
-                      }
-
-                      return Column(
-                        children: activities.map((activity) {
-                          return _buildActivityItem(
-                            activity.title,
-                            activity.subtitle,
-                            _formatTimestamp(activity.timestamp),
-                            _getActivityIcon(activity.type),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
+  Widget _buildWalletCard(BuildContext context, Wallet wallet) {
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => WalletScreen()),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Expanded(
-      child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: Colors.green, size: 30),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Wallet Balance',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, size: 16),
+                ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 8),
               Text(
-                title,
-                textAlign: TextAlign.center,
+                '₹${wallet.availableBalance.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
                 ),
               ),
+              if (wallet.lockedFunds.isNotEmpty) ...[
+                SizedBox(height: 4),
+                Text(
+                  'Locked in bids: ₹${wallet.lockedFunds.values.fold(0.0, (a, b) => a + b).toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.orange,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -285,13 +66,177 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null)
+      return Center(child: Text('Please login to view profile'));
+
+    return Scaffold(
+      body: StreamBuilder<Wallet>(
+        stream: _walletService.getWalletStream(user.uid),
+        builder: (context, walletSnapshot) {
+          return ListView(
+            children: [
+              // Profile header section
+              _buildProfileHeader(user),
+
+              // Wallet section
+              if (walletSnapshot.hasData)
+                _buildWalletCard(context, walletSnapshot.data!),
+
+              // Rest of your profile sections
+              _buildMenuSection(context),
+              _buildActivitySection(user.uid),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(User user) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        children: [
+          user.photoURL != null
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(user.photoURL!),
+                  radius: 40,
+                )
+              : CircleAvatar(
+                  child: Icon(Icons.account_circle, size: 50),
+                  radius: 40,
+                ),
+          SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.displayName ?? 'User',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                user.email ?? '',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuSection(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Interests Button
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InterestsPage(),
+                ),
+              );
+            },
+            icon: Icon(Icons.favorite),
+            label: Text('My Interests'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.all(16),
+              minimumSize: Size.fromHeight(50),
+            ),
+          ),
+
+          // Financial Assistance Button
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FinancialAssistancePage(),
+                ),
+              );
+            },
+            icon: Icon(Icons.account_balance),
+            label: Text('Apply for Financial Assistance'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.all(16),
+              minimumSize: Size.fromHeight(50),
+              backgroundColor: Colors.green.shade600,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivitySection(String userId) {
+    return Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Activity',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          StreamBuilder<List<ActivityItem>>(
+            stream: _userService.getUserActivities(userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              }
+
+              final activities = snapshot.data ?? [];
+              if (activities.isEmpty) {
+                return Center(child: Text('No recent activity'));
+              }
+
+              return Column(
+                children: activities.map((activity) {
+                  return _buildActivityItem(
+                    activity.title,
+                    activity.subtitle,
+                    _formatTimestamp(activity.timestamp),
+                    _getActivityIcon(activity.type),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActivityItem(
       String title, String subtitle, String time, IconData icon) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.green.withOpacity(0.1),
             shape: BoxShape.circle,
