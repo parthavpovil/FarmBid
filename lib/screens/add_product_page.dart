@@ -4,16 +4,16 @@ import 'package:geocoding/geocoding.dart';
 import '../models/auction_item.dart';
 import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class AddProductPage extends StatefulWidget {
   final Map<String, dynamic>? preAuctionData;
   final String? preAuctionId;
 
-  const AddProductPage({
-    Key? key,
-    this.preAuctionData,
-    this.preAuctionId,
-  }) : super(key: key);
+  AddProductPage({this.preAuctionData, this.preAuctionId});
 
   @override
   _AddProductPageState createState() => _AddProductPageState();
@@ -41,6 +41,10 @@ class _AddProductPageState extends State<AddProductPage> {
     'Dairy',
     'Others',
   ];
+
+  final ImagePicker _picker = ImagePicker();
+  List<File> _selectedImages = [];
+  bool _isUploading = false;
 
   Future<bool> _handleLocationPermission() async {
     bool serviceEnabled;
@@ -113,49 +117,170 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
-  void _addAuctionItem() {
-    final String name = _nameController.text;
-    final String description = _descriptionController.text;
-    final String location = _locationController.text;
-    final int quantity = int.tryParse(_quantityController.text) ?? 0;
-    final double startingBid =
-        double.tryParse(_startingBidController.text) ?? 0.0;
-    final String otherCategoryDescription =
-        _selectedCategory == 'Others' ? _otherCategoryController.text : '';
+  void _addAuctionItem() async {
+    setState(() => _isUploading = true);
 
-    final int durationHours = int.tryParse(_durationController.text) ?? 12;
-    _auctionDuration = Duration(hours: durationHours);
+    try {
+      final String name = _nameController.text;
+      final String description = _descriptionController.text;
+      final String location = _locationController.text;
+      final int quantity = int.tryParse(_quantityController.text) ?? 0;
+      final double startingBid =
+          double.tryParse(_startingBidController.text) ?? 0.0;
+      final String otherCategoryDescription =
+          _selectedCategory == 'Others' ? _otherCategoryController.text : '';
 
-    if (name.isNotEmpty &&
-        description.isNotEmpty &&
-        location.isNotEmpty &&
-        quantity > 0 &&
-        startingBid > 0) {
-      final User? user =
-          FirebaseAuth.instance.currentUser; // Get the current user
-      final String sellerId = user?.uid ?? 'unknown_user'; // Get user ID
-      final String sellerName = user?.displayName ?? 'Unknown'; // Get user name
+      final int durationHours = int.tryParse(_durationController.text) ?? 12;
+      _auctionDuration = Duration(hours: durationHours);
 
-      final newItem = AuctionItem(
-        id: '',
-        name: name,
-        description: description,
-        location: location,
-        quantity: quantity,
-        category: _selectedCategory,
-        otherCategoryDescription: otherCategoryDescription,
-        startingBid: startingBid,
-        currentBid: startingBid,
-        sellerId: sellerId,
-        sellerName: sellerName,
-        bids: [],
-        endTime: DateTime.now().add(_auctionDuration), // Set auction end time
-        status: AuctionStatus.upcoming, // Added required status parameter
-      );
+      if (name.isNotEmpty &&
+          description.isNotEmpty &&
+          location.isNotEmpty &&
+          quantity > 0 &&
+          startingBid > 0) {
+        List<String> imageUrls = await _uploadImages();
 
-      _auctionService.addAuctionItem(newItem);
-      Navigator.pop(context);
+        final User? user = FirebaseAuth.instance.currentUser;
+        final String sellerId = user?.uid ?? 'unknown_user';
+        final String sellerName = user?.displayName ?? 'Unknown';
+
+        final newItem = AuctionItem(
+          id: '',
+          name: name,
+          description: description,
+          location: location,
+          quantity: quantity,
+          category: _selectedCategory,
+          otherCategoryDescription: otherCategoryDescription,
+          startingBid: startingBid,
+          currentBid: startingBid,
+          sellerId: sellerId,
+          sellerName: sellerName,
+          bids: [],
+          endTime: DateTime.now().add(_auctionDuration),
+          status: AuctionStatus.upcoming,
+          images: imageUrls,
+        );
+
+        await _auctionService.addAuctionItem(newItem);
+
+        if (widget.preAuctionId != null) {
+          await FirebaseFirestore.instance
+              .collection('pre_auction_listings')
+              .doc(widget.preAuctionId)
+              .update({'isListed': true});
+        }
+
+        Navigator.pop(context);
+      }
+    } finally {
+      setState(() => _isUploading = false);
     }
+  }
+
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() {
+        _selectedImages.addAll(images.map((image) => File(image.path)));
+      });
+    }
+  }
+
+  Future<List<String>> _uploadImages() async {
+    List<String> imageUrls = [];
+    for (var image in _selectedImages) {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('auction_images')
+          .child(fileName);
+
+      await ref.putFile(image);
+      String downloadUrl = await ref.getDownloadURL();
+      imageUrls.add(downloadUrl);
+    }
+    return imageUrls;
+  }
+
+  Widget _buildImagePreview() {
+    return Container(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _selectedImages.length + 1,
+        itemBuilder: (context, index) {
+          if (index == _selectedImages.length) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: InkWell(
+                onTap: _pickImages,
+                child: Container(
+                  width: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.add_photo_alternate, size: 40),
+                ),
+              ),
+            );
+          }
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    _selectedImages[index],
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  icon: Icon(Icons.close, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      _selectedImages.removeAt(index);
+                    });
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.preAuctionData != null) {
+      _nameController.text = widget.preAuctionData!['productName'] ?? '';
+      _descriptionController.text = widget.preAuctionData!['description'] ?? '';
+      _locationController.text = widget.preAuctionData!['location'] ?? '';
+      _quantityController.text =
+          widget.preAuctionData!['estimatedQuantity'].toString();
+      _selectedCategory = widget.preAuctionData!['category'] ?? 'Vegetables';
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
+    _quantityController.dispose();
+    _startingBidController.dispose();
+    _otherCategoryController.dispose();
+    super.dispose();
   }
 
   @override
@@ -168,6 +293,7 @@ class _AddProductPageState extends State<AddProductPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            _buildImagePreview(),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(labelText: 'Product Name'),
@@ -230,8 +356,24 @@ class _AddProductPageState extends State<AddProductPage> {
               ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _addAuctionItem,
-              child: Text('Add Item'),
+              onPressed: _isUploading ? null : _addAuctionItem,
+              child: _isUploading
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Uploading...'),
+                      ],
+                    )
+                  : Text('Add Item'),
             ),
           ],
         ),

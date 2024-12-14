@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/activity_item.dart';
 import '../services/user_service.dart';
+import '../screens/interests_page.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -85,118 +86,146 @@ class _ProfilePageState extends State<ProfilePage> {
               // Navigate to settings page
             },
           ),
-          IconButton(
-            icon: Icon(Icons.add_box),
-            onPressed: _addTestData,
-          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Profile Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
                 children: [
-                  // Profile Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: user?.photoURL != null
-                              ? NetworkImage(user!.photoURL!)
-                              : null,
-                          child: user?.photoURL == null
-                              ? const Icon(Icons.person, size: 50)
-                              : null,
+                  user?.photoURL != null
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(user!.photoURL!),
+                          radius: 40,
+                        )
+                      : const CircleAvatar(
+                          child: Icon(Icons.account_circle, size: 50),
+                          radius: 40,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          user?.displayName ?? 'User',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.displayName ?? 'User',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          user?.email ?? 'No email',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
+                      ),
+                      Text(
+                        user?.email ?? '',
+                        style: TextStyle(
+                          color: Colors.grey[600],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // Stats Cards
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatCard(
-                            'Active\nAuctions',
-                            _userStats['activeAuctions'].toString(),
-                            Icons.gavel),
-                        _buildStatCard(
-                            'Active\nBids',
-                            _userStats['activeBids'].toString(),
-                            Icons.attach_money),
-                        _buildStatCard(
-                            'Completed\nDeals',
-                            _userStats['completedDeals'].toString(),
-                            Icons.done_all),
-                      ],
-                    ),
-                  ),
-
-                  // Recent Activity Section
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Recent Activity',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        StreamBuilder<List<ActivityItem>>(
-                          stream:
-                              _userService.getUserActivities(user?.uid ?? ''),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasError) {
-                              return Text('Error: ${snapshot.error}');
-                            }
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const CircularProgressIndicator();
-                            }
-                            final activities = snapshot.data ?? [];
-                            return Column(
-                              children: activities
-                                  .map(
-                                    (activity) => _buildActivityItem(
-                                      activity.title,
-                                      activity.subtitle,
-                                      activity.getTimeAgo(),
-                                      activity.getIcon(),
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+
+            // Stats Section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _buildStatCard(
+                    'Active\nAuctions',
+                    _userStats['activeAuctions'].toString(),
+                    Icons.gavel,
+                  ),
+                  _buildStatCard(
+                    'Active\nBids',
+                    _userStats['activeBids'].toString(),
+                    Icons.trending_up,
+                  ),
+                  _buildStatCard(
+                    'Completed\nDeals',
+                    _userStats['completedDeals'].toString(),
+                    Icons.check_circle,
+                  ),
+                ],
+              ),
+            ),
+
+            // Interests Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InterestsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.favorite),
+                label: const Text('My Interests'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  minimumSize: const Size.fromHeight(50),
+                ),
+              ),
+            ),
+
+            // Recent Activity
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Recent Activity',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<ActivityItem>>(
+                    stream: _userService.getUserActivities(user?.uid ?? ''),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final activities = snapshot.data ?? [];
+                      if (activities.isEmpty) {
+                        return const Center(
+                          child: Text('No recent activity'),
+                        );
+                      }
+
+                      return Column(
+                        children: activities.map((activity) {
+                          return _buildActivityItem(
+                            activity.title,
+                            activity.subtitle,
+                            _formatTimestamp(activity.timestamp),
+                            _getActivityIcon(activity.type),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -256,5 +285,33 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  IconData _getActivityIcon(String type) {
+    switch (type) {
+      case 'bid':
+        return Icons.gavel;
+      case 'created':
+        return Icons.add_circle;
+      case 'won':
+        return Icons.emoji_events;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

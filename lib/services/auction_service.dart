@@ -21,9 +21,9 @@ class AuctionService {
       'bids': [],
       'endTime': item.endTime.toIso8601String(),
       'status': item.status.toString(),
+      'images': item.images,
     });
 
-    // Create activity record for creating auction
     await createActivity(
       item.sellerId,
       'created',
@@ -35,28 +35,32 @@ class AuctionService {
   Stream<List<AuctionItem>> getAuctionItems() {
     return _auctionCollection.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
         return AuctionItem(
           id: doc.id,
-          name: doc['name'],
-          description: doc['description'],
-          location: doc['location'],
-          quantity: doc['quantity'],
-          category: doc['category'],
-          otherCategoryDescription: doc['otherCategoryDescription'],
-          startingBid: doc['startingBid'],
-          currentBid: doc['currentBid'],
-          sellerId: doc['sellerId'],
-          sellerName: doc['sellerName'],
-          bids: (doc['bids'] as List).map((bid) {
-            return Bid(
-              bidderId: bid['bidderId'],
-              bidderName: bid['bidderName'],
-              amount: bid['amount'],
-            );
-          }).toList(),
-          endTime: DateTime.parse(doc['endTime']),
-          status: AuctionStatus.values
-              .firstWhere((e) => e.toString() == doc['status']),
+          name: data['name'] ?? '',
+          description: data['description'] ?? '',
+          location: data['location'] ?? '',
+          quantity: data['quantity'] ?? 0,
+          category: data['category'] ?? '',
+          otherCategoryDescription: data['otherCategoryDescription'] ?? '',
+          startingBid: (data['startingBid'] ?? 0).toDouble(),
+          currentBid: (data['currentBid'] ?? 0).toDouble(),
+          sellerId: data['sellerId'] ?? '',
+          sellerName: data['sellerName'] ?? '',
+          bids: ((data['bids'] ?? []) as List)
+              .map((bid) => Bid(
+                    bidderId: bid['bidderId'] ?? '',
+                    bidderName: bid['bidderName'] ?? '',
+                    amount: (bid['amount'] ?? 0).toDouble(),
+                  ))
+              .toList(),
+          endTime: DateTime.parse(data['endTime']),
+          status: AuctionStatus.values.firstWhere(
+            (e) => e.toString() == data['status'],
+            orElse: () => AuctionStatus.upcoming,
+          ),
+          images: List<String>.from(data['images'] ?? []),
         );
       }).toList();
     });

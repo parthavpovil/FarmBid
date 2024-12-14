@@ -186,63 +186,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Your Interests Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Your Interests',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('pre_auction_listings')
-                        .where('interestedBuyerIds',
-                            arrayContains:
-                                FirebaseAuth.instance.currentUser?.uid)
-                        .where('isListed', isEqualTo: false)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      if (snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No interests marked yet',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        );
-                      }
-
-                      return Column(
-                        children: snapshot.data!.docs.map((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              title: Text(data['productName']),
-                              subtitle: Text(
-                                'Expected: ${_formatDate(DateTime.parse(data['expectedHarvestDate']))}',
-                              ),
-                              trailing: const Icon(Icons.notifications_active),
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
             // Your Posts Section
             Padding(
               padding: const EdgeInsets.all(16),

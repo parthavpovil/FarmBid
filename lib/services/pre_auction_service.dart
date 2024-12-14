@@ -43,6 +43,19 @@ class PreAuctionService {
     }
   }
 
+  Stream<QuerySnapshot> getUserInterests(String userId) {
+    try {
+      return _preAuctionCollection
+          .where('isListed', isEqualTo: false)
+          .where('interestedBuyerIds', arrayContains: userId)
+          .orderBy('expectedHarvestDate')
+          .snapshots();
+    } catch (e) {
+      print('Error in getUserInterests: $e');
+      rethrow;
+    }
+  }
+
   Future<void> markInterested(String listingId, String buyerId) async {
     try {
       await _preAuctionCollection.doc(listingId).update({

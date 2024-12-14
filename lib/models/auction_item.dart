@@ -19,6 +19,7 @@ class AuctionItem {
   final List<Bid> bids;
   final DateTime endTime;
   final AuctionStatus status;
+  final List<String> images;
 
   AuctionItem({
     required this.id,
@@ -35,7 +36,28 @@ class AuctionItem {
     required this.bids,
     required this.endTime,
     required this.status,
+    required this.images,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'location': location,
+      'quantity': quantity,
+      'category': category,
+      'otherCategoryDescription': otherCategoryDescription,
+      'startingBid': startingBid,
+      'currentBid': currentBid,
+      'sellerId': sellerId,
+      'sellerName': sellerName,
+      'bids': bids.map((bid) => bid.toMap()).toList(),
+      'endTime': endTime.toIso8601String(),
+      'status': status.toString(),
+      'images': images,
+    };
+  }
 }
 
 class Bid {
@@ -48,4 +70,12 @@ class Bid {
     required this.bidderName,
     required this.amount,
   });
-} 
+
+  Map<String, dynamic> toMap() {
+    return {
+      'bidderId': bidderId,
+      'bidderName': bidderName,
+      'amount': amount,
+    };
+  }
+}
