@@ -11,123 +11,92 @@ class AuctionCard extends StatelessWidget {
     required this.onTap,
   }) : super(key: key);
 
+  Widget _buildImage() {
+    if (item.images.isEmpty) {
+      return Container(
+        height: 120,
+        width: double.infinity,
+        color: Colors.grey[200],
+        child: Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    }
+
+    return Container(
+      height: 120,
+      width: double.infinity,
+      child: Image.network(
+        item.images[0], // Show first image
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: Icon(Icons.error_outline, color: Colors.red),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final remainingTime = item.endTime.difference(DateTime.now());
     
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildImage(),
+            Padding(
+              padding: EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  _buildStatusChip(remainingTime),
+                  SizedBox(height: 4),
+                  Text(
+                    item.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₹${item.currentBid}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        remainingTime.isNegative ? 'Ended' : 
+                        '${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.monetization_on,
-                'Current Bid: ₹${item.currentBid.toStringAsFixed(2)}',
-              ),
-              SizedBox(height: 4),
-              _buildInfoRow(
-                Icons.person,
-                'Seller: ${item.sellerName}',
-              ),
-              SizedBox(height: 4),
-              _buildInfoRow(
-                Icons.timer,
-                'Time Left: ${_formatRemainingTime(remainingTime)}',
-              ),
-              SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: remainingTime.inSeconds > 0
-                    ? remainingTime.inSeconds /
-                        item.endTime.difference(DateTime.now()).inSeconds
-                    : 0,
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  remainingTime.inHours > 24
-                      ? Colors.green
-                      : remainingTime.inHours > 6
-                          ? Colors.orange
-                          : Colors.red,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Widget _buildStatusChip(Duration remainingTime) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: remainingTime.inHours > 24
-            ? Colors.green[100]
-            : remainingTime.inHours > 6
-                ? Colors.orange[100]
-                : Colors.red[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        remainingTime.inHours > 24
-            ? 'Active'
-            : remainingTime.inHours > 6
-                ? 'Ending Soon'
-                : 'Last Hours',
-        style: TextStyle(
-          color: remainingTime.inHours > 24
-              ? Colors.green[900]
-              : remainingTime.inHours > 6
-                  ? Colors.orange[900]
-                  : Colors.red[900],
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            color: Colors.grey[800],
-            fontSize: 14,
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatRemainingTime(Duration duration) {
-    if (duration.inDays > 0) {
-      return '${duration.inDays}d ${duration.inHours.remainder(24)}h';
-    } else if (duration.inHours > 0) {
-      return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
-    } else {
-      return '${duration.inMinutes}m';
-    }
   }
 } 

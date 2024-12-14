@@ -71,55 +71,54 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
   }
 
   Widget _buildAvailableAuctionsTab() {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
-    
-    return Column(
-      children: [
-        _buildSearchAndFilter(),
-        Expanded(
-          child: StreamBuilder<List<AuctionItem>>(
-            stream: _auctionService.getAuctionItems(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+    return StreamBuilder<List<AuctionItem>>(
+      stream: _auctionService.getAuctionItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-              final auctionItems = snapshot.data ?? [];
-              final availableItems = auctionItems
-                  .where((item) => item.sellerId != currentUser?.uid)
-                  .where((item) =>
-                      _selectedCategory == null ||
-                      _selectedCategory == 'All' ||
-                      item.category == _selectedCategory)
-                  .where((item) => item.name
-                      .toLowerCase()
-                      .contains(_searchQuery.toLowerCase()))
-                  .toList();
+        final auctionItems = snapshot.data ?? [];
+        
+        if (auctionItems.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.gavel_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No auctions available'),
+              ],
+            ),
+          );
+        }
 
-              if (availableItems.isEmpty) {
-                return Center(child: Text('No available auctions right now.'));
-              }
-
-              return ListView.builder(
-                padding: EdgeInsets.only(top: 8),
-                itemCount: availableItems.length,
-                itemBuilder: (context, index) => AuctionCard(
-                  item: availableItems[index],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BidPage(item: availableItems[index]),
-                    ),
-                  ),
-                ),
-              );
-            },
+        return GridView.builder(
+          padding: EdgeInsets.all(8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
           ),
-        ),
-      ],
+          itemCount: auctionItems.length,
+          itemBuilder: (context, index) {
+            final item = auctionItems[index];
+            return AuctionCard(
+              item: item,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AuctionDetailPage(item: item),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

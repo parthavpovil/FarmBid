@@ -2,12 +2,48 @@ import 'package:flutter/material.dart';
 import '../models/auction_item.dart';
 import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 
 class AuctionDetailPage extends StatelessWidget {
   final AuctionItem item;
   final AuctionService _auctionService = AuctionService();
 
   AuctionDetailPage({required this.item});
+
+  Widget _buildImageCarousel() {
+    if (item.images.isEmpty) {
+      return Container(
+        height: 200,
+        color: Colors.grey[200],
+        child: Center(
+          child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+        ),
+      );
+    }
+
+    return Container(
+      height: 300,
+      child: PhotoViewGallery.builder(
+        scrollPhysics: const BouncingScrollPhysics(),
+        builder: (BuildContext context, int index) {
+          return PhotoViewGalleryPageOptions(
+            imageProvider: NetworkImage(item.images[index]),
+            minScale: PhotoViewComputedScale.contained,
+            maxScale: PhotoViewComputedScale.covered * 2,
+          );
+        },
+        itemCount: item.images.length,
+        loadingBuilder: (context, event) => Center(
+          child: CircularProgressIndicator(),
+        ),
+        backgroundDecoration: BoxDecoration(
+          color: Colors.black,
+        ),
+        pageController: PageController(),
+      ),
+    );
+  }
 
   void _showCloseAuctionDialog(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -64,65 +100,78 @@ class AuctionDetailPage extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Description:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Text(item.description, style: TextStyle(fontSize: 16)),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildInfoRow('Location', item.location),
-                    _buildInfoRow('Quantity', item.quantity.toString()),
-                    _buildInfoRow('Starting Bid', '₹${item.startingBid}'),
-                    _buildInfoRow('Current Bid', '₹${item.currentBid}'),
-                    _buildInfoRow('Time Remaining', 
-                      remainingTime.isNegative ? 'Auction Ended' : 
-                      '${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m'),
-                    _buildInfoRow('Highest Bidder', 
-                      highestBid != null ? highestBid.bidderName : 'No bids yet'),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text('Bid History:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Card(
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: item.bids.length,
-                itemBuilder: (context, index) {
-                  final bid = item.bids[index];
-                  return ListTile(
-                    leading: Icon(Icons.person_outline),
-                    title: Text(bid.bidderName),
-                    trailing: Text(
-                      '₹${bid.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
+            _buildImageCarousel(),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Description:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text(item.description, style: TextStyle(fontSize: 16)),
+                        ],
                       ),
                     ),
-                  );
-                },
+                  ),
+                  SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow('Location', item.location),
+                          _buildInfoRow('Quantity', item.quantity.toString()),
+                          _buildInfoRow('Starting Bid', '₹${item.startingBid}'),
+                          _buildInfoRow('Current Bid', '₹${item.currentBid}'),
+                          _buildInfoRow('Time Remaining', 
+                            remainingTime.isNegative ? 'Auction Ended' : 
+                            '${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m'),
+                          _buildInfoRow('Highest Bidder', 
+                            highestBid != null ? highestBid.bidderName : 'No bids yet'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Bid History:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Card(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: item.bids.length,
+                      itemBuilder: (context, index) {
+                        final bid = item.bids[index];
+                        return ListTile(
+                          leading: Icon(Icons.person_outline),
+                          title: Text(bid.bidderName),
+                          trailing: Text(
+                            '₹${bid.amount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

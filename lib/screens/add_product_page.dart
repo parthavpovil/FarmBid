@@ -6,7 +6,7 @@ import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../services/cloudinary_service.dart';
 import 'dart:io';
 
 class AddProductPage extends StatefulWidget {
@@ -189,18 +189,34 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<List<String>> _uploadImages() async {
     List<String> imageUrls = [];
-    for (var image in _selectedImages) {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('auction_images')
-          .child(fileName);
-
-      await ref.putFile(image);
-      String downloadUrl = await ref.getDownloadURL();
-      imageUrls.add(downloadUrl);
+    try {
+      setState(() => _isUploading = true);
+      
+      for (var imageFile in _selectedImages) {
+        final url = await CloudinaryService.uploadImage(imageFile);
+        imageUrls.add(url);
+        
+        // Show upload progress
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Uploaded ${imageUrls.length} of ${_selectedImages.length} images'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+      return imageUrls;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading images: $e')),
+      );
+      throw e;
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
-    return imageUrls;
   }
 
   Widget _buildImagePreview() {
