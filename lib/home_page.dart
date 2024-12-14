@@ -329,22 +329,36 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    children: [
-                      _buildCategoryCard(
-                          'Vegetables', 'assets/vegetables.png', '45 items'),
-                      _buildCategoryCard(
-                          'Fruits', 'assets/fruits.png', '32 items'),
-                      _buildCategoryCard(
-                          'Grains', 'assets/grains.png', '28 items'),
-                      _buildCategoryCard(
-                          'Dairy', 'assets/dairy.png', '15 items'),
-                    ],
+                  StreamBuilder<Map<String, int>>(
+                    stream: _getCategoryCounts(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final categoryCounts = snapshot.data ??
+                          {
+                            'Vegetables': 0,
+                            'Fruits': 0,
+                            'Grains': 0,
+                            'Dairy': 0,
+                          };
+
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        children: categoryCounts.entries.map((entry) {
+                          return _buildCategoryCard(
+                            entry.key,
+                            'assets/${entry.key.toLowerCase()}.png',
+                            '${entry.value} items',
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -654,5 +668,27 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  Stream<Map<String, int>> _getCategoryCounts() {
+    return FirebaseFirestore.instance
+        .collection('auction_items')
+        .snapshots()
+        .map((snapshot) {
+      Map<String, int> counts = {
+        'Vegetables': 0,
+        'Fruits': 0,
+        'Grains': 0,
+        'Dairy': 0,
+        'Others': 0,
+      };
+
+      for (var doc in snapshot.docs) {
+        final category = doc.data()['category'] as String? ?? 'Others';
+        counts[category] = (counts[category] ?? 0) + 1;
+      }
+
+      return counts;
+    });
   }
 }
