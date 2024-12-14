@@ -1,4 +1,5 @@
 import 'package:app/screens/add_pre_auction_page.dart';
+import 'package:app/screens/add_product_page.dart';
 import 'package:app/services/pre_auction_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -572,65 +573,34 @@ class _HomePageState extends State<HomePage> {
     final bool isInterested =
         (data['interestedBuyerIds'] as List<dynamic>).contains(currentUserId);
 
+    if (isOwner) {
+      return Card(
+        margin: EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.green.shade50,
+            child: Icon(Icons.eco, color: Colors.green),
+          ),
+          title: Text(data['productName'] ?? 'Unknown Product'),
+          subtitle: Text(
+              'Expected: ${_formatDate(DateTime.parse(data['expectedHarvestDate']))}'),
+          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () => _showDetailedPostView(data, docId, context),
+        ),
+      );
+    }
+
+    // Return existing card design for non-owners
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       child: Column(
         children: [
           ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.green.shade50,
-              child: const Icon(Icons.eco, color: Colors.green),
+              child: Icon(Icons.eco, color: Colors.green),
             ),
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(data['productName'] ?? 'Unknown Product'),
-                ),
-                if (isOwner)
-                  PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Listing'),
-                            content: const Text(
-                                'Are you sure you want to delete this listing?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  PreAuctionService()
-                                      .deletePreAuctionListing(docId);
-                                  Navigator.pop(context);
-                                },
-                                child: const Text('Delete',
-                                    style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                  ),
-              ],
-            ),
+            title: Text(data['productName'] ?? 'Unknown Product'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -638,32 +608,22 @@ class _HomePageState extends State<HomePage> {
                 Text(
                     'Expected: ${_formatDate(DateTime.parse(data['expectedHarvestDate']))}'),
                 Text('Quantity: ${data['estimatedQuantity']} kg'),
-                if (data['description']?.isNotEmpty ?? false)
-                  Text('Description: ${data['description']}'),
               ],
             ),
-            trailing: !isOwner
-                ? IconButton(
-                    icon: Icon(
-                      isInterested ? Icons.favorite : Icons.favorite_border,
-                      color: isInterested ? Colors.red : null,
-                    ),
-                    onPressed: () {
-                      final preAuctionService = PreAuctionService();
-                      if (isInterested) {
-                        preAuctionService.unmarkInterested(
-                          docId,
-                          currentUserId!,
-                        );
-                      } else {
-                        preAuctionService.markInterested(
-                          docId,
-                          currentUserId!,
-                        );
-                      }
-                    },
-                  )
-                : null,
+            trailing: IconButton(
+              icon: Icon(
+                isInterested ? Icons.favorite : Icons.favorite_border,
+                color: isInterested ? Colors.red : null,
+              ),
+              onPressed: () {
+                final preAuctionService = PreAuctionService();
+                if (isInterested) {
+                  preAuctionService.unmarkInterested(docId, currentUserId!);
+                } else {
+                  preAuctionService.markInterested(docId, currentUserId!);
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -690,5 +650,88 @@ class _HomePageState extends State<HomePage> {
 
       return counts;
     });
+  }
+
+  void _showDetailedPostView(
+      Map<String, dynamic> data, String docId, BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data['productName'],
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Text('Category: ${data['category']}'),
+            Text(
+                'Expected Harvest: ${_formatDate(DateTime.parse(data['expectedHarvestDate']))}'),
+            Text('Quantity: ${data['estimatedQuantity']} kg'),
+            Text('Description: ${data['description'] ?? 'No description'}'),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddProductPage(
+                          preAuctionData: data,
+                          preAuctionId: docId,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.gavel),
+                  label: const Text('Convert to Auction'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete Listing'),
+                        content: const Text(
+                            'Are you sure you want to delete this listing?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              PreAuctionService()
+                                  .deletePreAuctionListing(docId);
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Delete',
+                                style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label:
+                      const Text('Delete', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

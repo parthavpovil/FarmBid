@@ -6,6 +6,15 @@ import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AddProductPage extends StatefulWidget {
+  final Map<String, dynamic>? preAuctionData;
+  final String? preAuctionId;
+
+  const AddProductPage({
+    Key? key,
+    this.preAuctionData,
+    this.preAuctionId,
+  }) : super(key: key);
+
   @override
   _AddProductPageState createState() => _AddProductPageState();
 }
@@ -40,7 +49,9 @@ class _AddProductPageState extends State<AddProductPage> {
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location services are disabled. Please enable the services')),
+        SnackBar(
+            content: Text(
+                'Location services are disabled. Please enable the services')),
       );
       return false;
     }
@@ -170,13 +181,13 @@ class _AddProductPageState extends State<AddProductPage> {
               decoration: InputDecoration(
                 labelText: 'Location',
                 suffixIcon: IconButton(
-                  icon: _isLoadingLocation 
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(Icons.my_location),
+                  icon: _isLoadingLocation
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(Icons.my_location),
                   onPressed: _getCurrentLocation,
                 ),
               ),
