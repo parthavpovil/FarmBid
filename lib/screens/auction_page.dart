@@ -6,6 +6,7 @@ import 'bid_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auction_detail_page.dart';
 import '../widgets/auction_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuctionPage extends StatefulWidget {
   @override
@@ -31,7 +32,7 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           elevation: 0,
@@ -47,6 +48,10 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
               Tab(
                 icon: Icon(Icons.inventory),
                 text: 'My Auctions',
+              ),
+              Tab(
+                icon: Icon(Icons.emoji_events),
+                text: 'Won Auctions',
               ),
             ],
           ),
@@ -64,6 +69,7 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
           children: [
             _buildAvailableAuctionsTab(),
             _buildMyAuctionsTab(),
+            _buildWonAuctionsTab(),
           ],
         ),
       ),
@@ -393,6 +399,68 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
         );
       },
     );
+  }
+
+  Widget _buildWonAuctionsTab() {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    
+    return StreamBuilder<List<AuctionItem>>(
+      stream: _auctionService.getWonAuctions(currentUser?.uid ?? ''),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final wonItems = snapshot.data ?? [];
+
+        if (wonItems.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No won auctions yet'),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: wonItems.length,
+          itemBuilder: (context, index) {
+            final item = wonItems[index];
+            return ListTile(
+              title: Text(item.name),
+              subtitle: Text(item.description),
+              trailing: IconButton(
+                icon: Icon(Icons.map),
+                onPressed: () => _launchMaps(item.latitude, item.longitude),
+              ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AuctionDetailPage(
+                    item: item,
+                    showLocation: true,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _launchMaps(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    if (await canLaunch(url)) {
+      await launch(url);
+    }
   }
 
   String _formatRemainingTime(Duration duration) {

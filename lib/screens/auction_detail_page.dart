@@ -5,12 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'bid_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuctionDetailPage extends StatelessWidget {
   final AuctionItem item;
+  final bool showLocation;
   final AuctionService _auctionService = AuctionService();
 
-  AuctionDetailPage({required this.item});
+  AuctionDetailPage({
+    required this.item,
+    this.showLocation = false,
+  });
 
   Widget _buildImageCarousel() {
     if (item.images.isEmpty) {
@@ -241,6 +246,10 @@ class AuctionDetailPage extends StatelessWidget {
   }
 
   Widget _buildInfoRow(String label, String value) {
+    if (label == 'Location' && !showLocation) {
+      return SizedBox.shrink();
+    }
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -253,15 +262,38 @@ class AuctionDetailPage extends StatelessWidget {
               color: Colors.grey[600],
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          if (label == 'Location' && showLocation)
+            GestureDetector(
+              onTap: () => _launchMaps(item.latitude, item.longitude),
+              child: Row(
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.map, size: 16, color: Colors.blue),
+                ],
+              ),
+            )
+          else
+            Text(
+              value,
+              style: TextStyle(fontSize: 16),
             ),
-          ),
         ],
       ),
     );
+  }
+
+  void _launchMaps(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    if (await canLaunch(url)) {
+      await launch(url);
+    }
   }
 }

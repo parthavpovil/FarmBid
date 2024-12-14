@@ -33,6 +33,8 @@ class _AddProductPageState extends State<AddProductPage> {
   Duration _auctionDuration = Duration(minutes: 1);
   String _selectedTimeUnit = 'minutes';
   bool _isLoadingLocation = false;
+  double? _latitude;
+  double? _longitude;
 
   List<String> categories = [
     'Vegetables',
@@ -85,18 +87,14 @@ class _AddProductPageState extends State<AddProductPage> {
   Future<void> _getCurrentLocation() async {
     setState(() => _isLoadingLocation = true);
 
-    final hasPermission = await _handleLocationPermission();
-    if (!hasPermission) {
-      setState(() => _isLoadingLocation = false);
-      return;
-    }
-
     try {
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      if (!await _handleLocationPermission()) return;
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      final position = await Geolocator.getCurrentPosition();
+      _latitude = position.latitude;
+      _longitude = position.longitude;
+
+      final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
@@ -150,6 +148,8 @@ class _AddProductPageState extends State<AddProductPage> {
           name: name,
           description: description,
           location: location,
+          latitude: _latitude ?? 0,
+          longitude: _longitude ?? 0,
           quantity: quantity,
           category: _selectedCategory,
           otherCategoryDescription: otherCategoryDescription,
