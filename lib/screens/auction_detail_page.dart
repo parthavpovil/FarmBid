@@ -4,6 +4,7 @@ import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'bid_page.dart';
 
 class AuctionDetailPage extends StatelessWidget {
   final AuctionItem item;
@@ -177,6 +178,65 @@ class AuctionDetailPage extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: !isOwner && item.status != AuctionStatus.closed ? Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Current Bid',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Text(
+                    '₹${item.currentBid.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: remainingTime.isNegative ? null : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BidPage(item: item),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text(
+                  remainingTime.isNegative ? 'Auction Ended' : 'Place Bid',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ) : null,
     );
   }
 

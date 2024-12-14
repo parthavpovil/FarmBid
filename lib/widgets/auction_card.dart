@@ -41,6 +41,21 @@ class AuctionCard extends StatelessWidget {
     );
   }
 
+  String _formatRemainingTime(Duration duration) {
+    if (duration.isNegative) {
+      return 'Ended';
+    }
+    if (duration.inDays > 0) {
+      return '${duration.inDays}d ${duration.inHours.remainder(24)}h';
+    } else if (duration.inHours > 0) {
+      return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
+    } else if (duration.inMinutes > 0) {
+      return '${duration.inMinutes}m ${duration.inSeconds.remainder(60)}s';
+    } else {
+      return '${duration.inSeconds}s';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final remainingTime = item.endTime.difference(DateTime.now());
@@ -85,8 +100,9 @@ class AuctionCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        remainingTime.isNegative ? 'Ended' : 
-                        '${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m',
+                        remainingTime.isNegative 
+                          ? 'Ended' 
+                          : _formatRemainingTime(remainingTime),
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
