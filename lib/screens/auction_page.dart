@@ -7,6 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'auction_detail_page.dart';
 import '../widgets/auction_card.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../tutorial/auction_page_tutorial.dart';
+import '../tutorial/tutorial_overlay.dart';
+import '../tutorial/tutorial_controller.dart';
 
 class AuctionPage extends StatefulWidget {
   @override
@@ -15,6 +18,13 @@ class AuctionPage extends StatefulWidget {
 
 class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStateMixin {
   final AuctionService _auctionService = AuctionService();
+  final List<GlobalKey> _tutorialKeys = [
+    GlobalKey(), // App bar
+    GlobalKey(), // Available auctions tab
+    GlobalKey(), // My auctions tab
+    GlobalKey(), // Won auctions tab
+    GlobalKey(), // Add auction button
+  ];
   String _searchQuery = '';
   String? _selectedCategory;
   List<String> categories = [
@@ -28,6 +38,35 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkAndShowTutorial();
+  }
+
+  Future<void> _checkAndShowTutorial() async {
+    if (!await TutorialController.hasSeenAuctionTutorial()) {
+      // Wait for the widget to be built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startTutorial();
+      });
+    }
+  }
+
+  void _startTutorial() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TutorialOverlay(
+        steps: AuctionPageTutorial.getSteps(context, _tutorialKeys),
+        onComplete: () {
+          Navigator.of(context).pop();
+          TutorialController.markAuctionTutorialAsSeen();
+        },
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -35,6 +74,7 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
       length: 3,
       child: Scaffold(
         appBar: AppBar(
+          key: _tutorialKeys[0],
           elevation: 0,
           title: Text('FarmBid Market'),
           bottom: TabBar(
@@ -42,14 +82,17 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
             indicatorWeight: 3,
             tabs: [
               Tab(
+                key: _tutorialKeys[1],
                 icon: Icon(Icons.gavel),
                 text: 'Available Auctions',
               ),
               Tab(
+                key: _tutorialKeys[2],
                 icon: Icon(Icons.inventory),
                 text: 'My Auctions',
               ),
               Tab(
+                key: _tutorialKeys[3],
                 icon: Icon(Icons.emoji_events),
                 text: 'Won Auctions',
               ),
@@ -57,6 +100,12 @@ class _AuctionPageState extends State<AuctionPage> with SingleTickerProviderStat
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.help_outline),
+              tooltip: 'Start Tutorial',
+              onPressed: _startTutorial,
+            ),
+            IconButton(
+              key: _tutorialKeys[4],
               icon: Icon(Icons.add_circle_outline),
               onPressed: () => Navigator.push(
                 context,
