@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import '../services/image_service.dart';
 
 class AddProductPage extends StatefulWidget {
   final Map<String, dynamic>? preAuctionData;
@@ -188,19 +189,13 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Future<List<String>> _uploadImages() async {
-    List<String> imageUrls = [];
-    for (var image in _selectedImages) {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('auction_images')
-          .child(fileName);
-
-      await ref.putFile(image);
-      String downloadUrl = await ref.getDownloadURL();
-      imageUrls.add(downloadUrl);
+    try {
+      if (_selectedImages.isEmpty) return [];
+      return await ImageService.uploadImages(_selectedImages);
+    } catch (e) {
+      print('Error uploading images: $e');
+      throw e;
     }
-    return imageUrls;
   }
 
   Widget _buildImagePreview() {
