@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/auction_item.dart';
 import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/wallet_service.dart';
 
 class BidPage extends StatefulWidget {
   final AuctionItem item;
@@ -16,7 +17,7 @@ class _BidPageState extends State<BidPage> {
   final AuctionService _auctionService = AuctionService();
   final TextEditingController _bidController = TextEditingController();
 
-  void _placeBid() {
+  void _placeBid() async {
     final double newBid = double.tryParse(_bidController.text) ?? 0.0;
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -34,19 +35,33 @@ class _BidPageState extends State<BidPage> {
       return;
     }
 
-    if (newBid > widget.item.currentBid) {
-      final bid = Bid(
-        bidderId: user.uid,
-        bidderName: user.displayName ?? 'Unknown User',
-        amount: newBid,
-      );
-      _auctionService.placeBid(widget.item.id, bid);
-      Navigator.pop(context);
-    } else {
+    if (newBid <= widget.item.currentBid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Bid must be higher than current bid')),
       );
+      return;
     }
+
+    // Check and lock funds
+    final walletService = WalletService();
+    final success =
+        await walletService.lockFundsForBid(user.uid, widget.item.id, newBid);
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Insufficient funds in wallet')),
+      );
+      return;
+    }
+
+    final bid = Bid(
+      bidderId: user.uid,
+      bidderName: user.displayName ?? 'Unknown User',
+      amount: newBid,
+    );
+
+    await _auctionService.placeBid(widget.item.id, bid);
+    Navigator.pop(context);
   }
 
   @override
@@ -59,7 +74,7 @@ class _BidPageState extends State<BidPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text('Current Bid: \$${widget.item.currentBid}'),
+            Text('Current Bid: ₹${widget.item.currentBid}'),
             TextField(
               controller: _bidController,
               decoration: InputDecoration(labelText: 'Your Bid'),
@@ -78,7 +93,7 @@ class _BidPageState extends State<BidPage> {
                 itemBuilder: (context, index) {
                   final bid = widget.item.bids[index];
                   return ListTile(
-                    title: Text('${bid.bidderName} bid: \$${bid.amount}'),
+                    title: Text('${bid.bidderName} bid: ₹${bid.amount}'),
                   );
                 },
               ),

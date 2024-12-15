@@ -6,7 +6,7 @@ import '../services/auction_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../services/cloudinary_service.dart';
 import 'dart:io';
 import '../services/image_service.dart';
 
@@ -29,10 +29,13 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _startingBidController = TextEditingController();
   final TextEditingController _otherCategoryController =
       TextEditingController();
-  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController(text: '1');
   String _selectedCategory = 'Vegetables'; // Default category
-  Duration _auctionDuration = Duration(hours: 12); // Default auction duration
+  Duration _auctionDuration = Duration(minutes: 1);
+  String _selectedTimeUnit = 'minutes';
   bool _isLoadingLocation = false;
+  double? _latitude;
+  double? _longitude;
 
   List<String> categories = [
     'Vegetables',
@@ -85,18 +88,14 @@ class _AddProductPageState extends State<AddProductPage> {
   Future<void> _getCurrentLocation() async {
     setState(() => _isLoadingLocation = true);
 
-    final hasPermission = await _handleLocationPermission();
-    if (!hasPermission) {
-      setState(() => _isLoadingLocation = false);
-      return;
-    }
-
     try {
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      if (!await _handleLocationPermission()) return;
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      final position = await Geolocator.getCurrentPosition();
+      _latitude = position.latitude;
+      _longitude = position.longitude;
+
+      final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
@@ -150,6 +149,8 @@ class _AddProductPageState extends State<AddProductPage> {
           name: name,
           description: description,
           location: location,
+          latitude: _latitude ?? 0,
+          longitude: _longitude ?? 0,
           quantity: quantity,
           category: _selectedCategory,
           otherCategoryDescription: otherCategoryDescription,
@@ -189,12 +190,43 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Future<List<String>> _uploadImages() async {
+<<<<<<< HEAD
     try {
       if (_selectedImages.isEmpty) return [];
       return await ImageService.uploadImages(_selectedImages);
     } catch (e) {
       print('Error uploading images: $e');
       throw e;
+=======
+    List<String> imageUrls = [];
+    try {
+      setState(() => _isUploading = true);
+      
+      for (var imageFile in _selectedImages) {
+        final url = await CloudinaryService.uploadImage(imageFile);
+        imageUrls.add(url);
+        
+        // Show upload progress
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Uploaded ${imageUrls.length} of ${_selectedImages.length} images'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+      return imageUrls;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading images: $e')),
+      );
+      throw e;
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+>>>>>>> 0fc5416d3c3ebcb302b694c9f615ea1171daf71e
     }
   }
 
@@ -254,6 +286,66 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
+  Widget _buildDurationSelector() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: _durationController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Duration',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              _updateDuration(value);
+            },
+          ),
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          flex: 1,
+          child: DropdownButtonFormField<String>(
+            value: _selectedTimeUnit,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+            ),
+            items: ['seconds', 'minutes', 'hours']
+                .map((unit) => DropdownMenuItem(
+                      value: unit,
+                      child: Text(unit),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedTimeUnit = value!;
+                _updateDuration(_durationController.text);
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _updateDuration(String value) {
+    final duration = int.tryParse(value) ?? 0;
+    setState(() {
+      switch (_selectedTimeUnit) {
+        case 'seconds':
+          _auctionDuration = Duration(seconds: duration);
+          break;
+        case 'minutes':
+          _auctionDuration = Duration(minutes: duration);
+          break;
+        case 'hours':
+          _auctionDuration = Duration(hours: duration);
+          break;
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -264,6 +356,9 @@ class _AddProductPageState extends State<AddProductPage> {
       _quantityController.text =
           widget.preAuctionData!['estimatedQuantity'].toString();
       _selectedCategory = widget.preAuctionData!['category'] ?? 'Vegetables';
+      
+      // Initialize duration with minutes as default
+      _updateDuration(_durationController.text);
     }
   }
 
@@ -287,88 +382,218 @@ class _AddProductPageState extends State<AddProductPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildImagePreview(),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Product Name'),
-            ),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-            ),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: 'Location',
-                suffixIcon: IconButton(
-                  icon: _isLoadingLocation
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(Icons.my_location),
-                  onPressed: _getCurrentLocation,
+            SizedBox(height: 24),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Product Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Product Name',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.shopping_basket),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.description),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            TextField(
-              controller: _quantityController,
-              decoration: InputDecoration(labelText: 'Quantity'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _startingBidController,
-              decoration: InputDecoration(labelText: 'Starting Bid'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _durationController,
-              decoration: InputDecoration(
-                  labelText: 'Auction Duration (hours, default 12)'),
-              keyboardType: TextInputType.number,
-            ),
-            DropdownButton<String>(
-              value: _selectedCategory,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedCategory = newValue!;
-                });
-              },
-              items: categories.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-            if (_selectedCategory == 'Others')
-              TextField(
-                controller: _otherCategoryController,
-                decoration:
-                    InputDecoration(labelText: 'Describe Other Category'),
-              ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isUploading ? null : _addAuctionItem,
-              child: _isUploading
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
+            SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Auction Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Row(
                       children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                        Expanded(
+                          child: TextField(
+                            controller: _locationController,
+                            decoration: InputDecoration(
+                              labelText: 'Location',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.location_on),
+                            ),
                           ),
                         ),
                         SizedBox(width: 8),
-                        Text('Uploading...'),
+                        IconButton(
+                          onPressed: _getCurrentLocation,
+                          icon: Icon(Icons.my_location),
+                          tooltip: 'Get Current Location',
+                        ),
                       ],
-                    )
-                  : Text('Add Item'),
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _quantityController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Quantity',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.inventory),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: _startingBidController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Starting Bid (₹)',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.currency_rupee),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _durationController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Duration',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.timer),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          flex: 1,
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedTimeUnit,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                            items: ['seconds', 'minutes', 'hours']
+                                .map((unit) => DropdownMenuItem(
+                                      value: unit,
+                                      child: Text(unit),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedTimeUnit = value!;
+                                _updateDuration(_durationController.text);
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Category',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      items: categories
+                          .map((category) => DropdownMenuItem(
+                                value: category,
+                                child: Text(category),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
+                    ),
+                    if (_selectedCategory == 'Others') ...[
+                      SizedBox(height: 16),
+                      TextField(
+                        controller: _otherCategoryController,
+                        decoration: InputDecoration(
+                          labelText: 'Specify Category',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.edit),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _isUploading ? null : _addAuctionItem,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: _isUploading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      'Add Item',
+                      style: TextStyle(fontSize: 18),
+                    ),
             ),
           ],
         ),

@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
+import 'package:app/tutorial/home_page_tutorial.dart';
+import 'package:app/tutorial/tutorial_overlay.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -15,6 +17,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final List<GlobalKey> _tutorialKeys = [
+    GlobalKey(), // Welcome section
+    GlobalKey(), // Future Harvests section
+    GlobalKey(), // Your Posts section
+  ];
 
   Future<void> _signOut(BuildContext context) async {
     try {
@@ -31,6 +38,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _startTutorial() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TutorialOverlay(
+        steps: HomePageTutorial.getSteps(context, _tutorialKeys),
+        onComplete: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? user = _auth.currentUser;
@@ -39,6 +59,11 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('FarmBid'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Start Tutorial',
+            onPressed: _startTutorial,
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
@@ -51,6 +76,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             // Welcome Banner
             Container(
+              key: _tutorialKeys[0],
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
@@ -98,6 +124,7 @@ class _HomePageState extends State<HomePage> {
 
             // Add Future Harvests Section
             Padding(
+              key: _tutorialKeys[1],
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +215,7 @@ class _HomePageState extends State<HomePage> {
 
             // Your Posts Section
             Padding(
+              key: _tutorialKeys[2],
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,30 +447,71 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _getCategoryIcon(title),
-            size: 40,
-            color: Colors.green,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Background Image
+            Positioned.fill(
+              child: Image.asset(
+                'assets/categories/${title.toLowerCase()}.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  print('Error loading image for category: $title');
+                  return Container(
+                    color: Colors.grey[300],
+                    child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+                  );
+                },
+              ),
             ),
-          ),
-          Text(
-            itemCount,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
+            // Dark Overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+            // Text Content
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      itemCount,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

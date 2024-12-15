@@ -9,6 +9,8 @@ class AuctionItem {
   final String name;
   final String description;
   final String location;
+  final double latitude;
+  final double longitude;
   final int quantity;
   final String category;
   final String otherCategoryDescription;
@@ -26,6 +28,8 @@ class AuctionItem {
     required this.name,
     required this.description,
     required this.location,
+    required this.latitude,
+    required this.longitude,
     required this.quantity,
     required this.category,
     required this.otherCategoryDescription,
@@ -45,6 +49,8 @@ class AuctionItem {
       'name': name,
       'description': description,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'quantity': quantity,
       'category': category,
       'otherCategoryDescription': otherCategoryDescription,
